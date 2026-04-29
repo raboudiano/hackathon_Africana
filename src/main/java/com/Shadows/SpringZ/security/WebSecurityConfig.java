@@ -66,6 +66,16 @@ public class WebSecurityConfig {
 
     @Bean
     @Order(1)
+    public SecurityFilterChain authFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher("/api/auth/**")
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http.securityMatcher("/api/**")
                 .csrf(csrf -> csrf.disable())
@@ -73,7 +83,6 @@ public class WebSecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
@@ -82,7 +91,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    @Order(2)
+    @Order(3)
     public SecurityFilterChain mvcFilterChain(HttpSecurity http) throws Exception {
         // Permit the existing MVC + Thymeleaf pages.
         // CSRF is disabled to avoid breaking existing form POST endpoints.
