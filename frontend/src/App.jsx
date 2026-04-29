@@ -3,8 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Nav from './components/Nav'
 import ResourceList from './pages/ResourceList'
 import ResourceForm from './pages/ResourceForm'
+import AuthPage from './pages/AuthPage'
+import DashboardPage from './pages/DashboardPage'
 import resources from './config/resources'
-import LegacyIndex from './legacy/Index'
 import LegacyList from './legacy/LegacyList'
 import DeleteThenRedirect from './legacy/DeleteThenRedirect'
 
@@ -14,9 +15,12 @@ export default function App() {
       <Nav />
       <main>
         <Routes>
-          <Route path="/" element={<Navigate to="/categories" replace />} />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/home" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<Navigate to="/auth" replace />} />
           {/* Legacy server template routes */}
-          <Route path="/" element={<LegacyIndex />} />
           <Route path="/all" element={<LegacyList resourceKey="products" />} />
           <Route path="/allCategories" element={<LegacyList resourceKey="categories" />} />
           <Route path="/allSubCategories" element={<LegacyList resourceKey="subcategories" />} />

@@ -1,21 +1,43 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import api from '../api'
 
 export default function ResourceList({ resource }) {
+  const tokenPresent = Boolean(localStorage.getItem('token'))
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
+    if (!tokenPresent) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
-    api.get(`/${resource.name}`).then(r => setItems(r.data)).catch(console.error).finally(() => setLoading(false))
-  }, [resource.name])
+    setError('')
+    api.get(`/${resource.name}`)
+      .then(r => setItems(r.data))
+      .catch(err => {
+        setError(err?.response?.data?.error || err?.message || 'Failed to load records')
+      })
+      .finally(() => setLoading(false))
+  }, [resource.name, tokenPresent])
 
   const del = async (id) => {
     if (!confirm('Delete item?')) return
-    await api.delete(`/${resource.name}/${id}`)
-    setItems(items.filter(i => i.id !== id))
+    setError('')
+    try {
+      await api.delete(`/${resource.name}/${id}`)
+      setItems(items.filter(i => i.id !== id))
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || 'Delete failed')
+    }
+  }
+
+  if (!tokenPresent) {
+    return <Navigate to="/auth" replace />
   }
 
   return (
@@ -24,6 +46,7 @@ export default function ResourceList({ resource }) {
       <div className="actions">
         <Link to={`/${resource.name}/new`} className="btn">New</Link>
       </div>
+      {error && <div className="alert-box">{error}</div>}
       {loading ? <p>Loading...</p> : (
         <table>
           <thead>

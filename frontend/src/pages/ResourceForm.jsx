@@ -1,42 +1,88 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Navigate, useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 
 export default function ResourceForm({ resource }) {
+  const tokenPresent = Boolean(localStorage.getItem('token'))
   const { id } = useParams()
   const navigate = useNavigate()
   const [model, setModel] = useState({})
+  const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!tokenPresent) {
+      return
+    }
+
     if (id) {
-      api.get(`/${resource.name}/${id}`).then(r => setModel(r.data)).catch(console.error)
+      setError('')
+      api.get(`/${resource.name}/${id}`)
+        .then(r => setModel(r.data))
+        .catch(err => setError(err?.response?.data?.error || err?.message || 'Failed to load record'))
     } else {
       setModel({})
     }
-  }, [id, resource.name])
+  }, [id, resource.name, tokenPresent])
 
   const updateField = (key, value) => setModel(m => ({ ...m, [key]: value }))
 
+  const formFields = resource.formFields ?? resource.fields
+
+  const toPayload = (values) => {
+    const payload = { ...values }
+
+    for (const field of formFields) {
+      if (field.type === 'number') {
+        const rawValue = payload[field.key]
+        if (rawValue === '' || rawValue === null || rawValue === undefined) {
+          payload[field.key] = null
+        } else {
+          payload[field.key] = Number(rawValue)
+        }
+      }
+
+      if (field.type === 'date' && payload[field.key] === '') {
+        payload[field.key] = null
+      }
+    }
+
+    if (resource.name === 'orders' && typeof payload.productIds === 'string') {
+      payload.productIds = payload.productIds
+        .split(',')
+        .map(value => Number(value.trim()))
+        .filter(value => Number.isFinite(value) && value > 0)
+    }
+
+    return payload
+  }
+
   const submit = async (e) => {
     e.preventDefault()
-    const payload = { ...model }
-    // convert productIds from comma to array for orders
-    if (resource.name === 'orders' && typeof payload.productIds === 'string') {
-      payload.productIds = payload.productIds.split(',').map(s => Number(s.trim())).filter(Boolean)
+    const payload = toPayload(model)
+    setError('')
+
+    try {
+      if (id) {
+        await api.put(`/${resource.name}/${id}`, payload)
+      } else {
+        await api.post(`/${resource.name}`, payload)
+      }
+      navigate(`/${resource.name}`)
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Save failed')
     }
-    if (id) {
-      await api.put(`/${resource.name}/${id}`, payload)
-    } else {
-      await api.post(`/${resource.name}`, payload)
-    }
-    navigate(`/${resource.name}`)
+  }
+
+  if (!tokenPresent) {
+    return <Navigate to="/auth" replace />
   }
 
   return (
     <div className="resource-form">
       <h2>{resource.title} {id ? '— Edit' : '— New'}</h2>
+      {error && <div className="alert-box">{error}</div>}
       <form onSubmit={submit}>
-        {resource.fields.map(f => (
+        {formFields.map(f => (
           <div className="field" key={f.key}>
             <label>{f.label}</label>
             <input
