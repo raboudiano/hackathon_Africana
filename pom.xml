@@ -92,11 +92,6 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
-
 		<!-- Test database to run Spring context without requiring a local MySQL instance. -->
 		<dependency>
 			<groupId>com.h2database</groupId>

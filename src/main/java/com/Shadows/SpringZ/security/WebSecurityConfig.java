@@ -15,18 +15,22 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
  * Security configuration.
  *
  * Requirements:
- * - Protect JSON API endpoints with JWT (Postman usage).
- * - Keep the existing Thymeleaf pages working without adding CSRF tokens everywhere.
+ * - Protect JSON API endpoints with JWT.
+ * - Allow the Angular dev server to call the API.
  *
  * Design:
- * - Two filter chains (well-known Spring Security pattern for isolating concerns):
- *   1) /api/** => stateless JWT auth
- *   2) everything else => permitAll
+ * - /api/** is stateless JWT auth.
+ * - Static/non-API routes are permitted so an Angular build can be served separately or as static assets.
  */
 @Configuration
 @EnableMethodSecurity
@@ -68,6 +72,7 @@ public class WebSecurityConfig {
     @Order(1)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http.securityMatcher("/api/**")
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -82,10 +87,25 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:4200",
+                "http://127.0.0.1:4200"
+        ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowCredentials(false);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
+        return source;
+    }
+
+    @Bean
     @Order(2)
-    public SecurityFilterChain mvcFilterChain(HttpSecurity http) throws Exception {
-        // Permit the existing MVC + Thymeleaf pages.
-        // CSRF is disabled to avoid breaking existing form POST endpoints.
+    public SecurityFilterChain staticFilterChain(HttpSecurity http) throws Exception {
         http.securityMatcher("/**")
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());

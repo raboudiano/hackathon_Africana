@@ -1,186 +1,147 @@
-# SpringZ - E-Commerce Backend (Spring Boot)
+# SpringZ - E-Commerce Backend
 
-SpringZ is a Spring Boot e-commerce backend demonstrating core concepts: users (customers/providers), categories/subcategories, products, and orders.
+SpringZ is a Spring Boot e-commerce backend for users, customers, providers, categories, subcategories, products, and orders.
 
-It provides:
+It now provides:
 
-- Server-rendered CRUD pages (Thymeleaf)
-- A JSON REST API under `/api/**` protected with JWT (for Postman)
+- A JSON REST API under `/api/**`
+- JWT authentication for protected API requests
+- CORS support for an Angular frontend running on `http://localhost:4200`
+- A Postman collection for API testing
 
-## Repository contents
+## Repository Contents
 
 - Domain models: `src/main/java/com/Shadows/SpringZ/model`
 - Repositories: `src/main/java/com/Shadows/SpringZ/repository`
-- Services and controllers: `src/main/java/com/Shadows/SpringZ/service` and `.../controller`
-- Thymeleaf templates: `src/main/resources/templates`
+- Services: `src/main/java/com/Shadows/SpringZ/service`
 - JSON API controllers: `src/main/java/com/Shadows/SpringZ/api`
-- Security (JWT): `src/main/java/com/Shadows/SpringZ/security`
+- Security: `src/main/java/com/Shadows/SpringZ/security`
 - Postman collection: `postman/SpringZ_API.postman_collection.json`
 
-## Quick facts
-
-- Java: 17
-- Spring Boot: 3.5.6 (see `pom.xml`)
-- Build: Maven (wrapper included)
+The previous Thymeleaf MVC controllers and templates were removed. The UI should be handled by Angular.
 
 ## Prerequisites
 
 - Java 17+
-- MySQL (runtime) — configure credentials in `src/main/resources/application.properties`
-- No MySQL required for tests (tests use an in-memory H2 database)
+- MySQL for runtime
+- Maven wrapper included in this repository
 
-## Configuration
+Tests use an in-memory H2 database, so MySQL is not required for tests.
 
-Edit `src/main/resources/application.properties` and set your datasource.
+## Backend Configuration
 
-Default (current) configuration uses MySQL and creates the database if needed:
+Edit `src/main/resources/application.properties` if your database settings are different.
 
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/SpringZ?createDatabaseIfNotExist=true&useSSl=false&serverTimezone=UTC
+spring.datasource.url=jdbc:mysql://localhost:3306/ecommerce?createDatabaseIfNotExist=true&useSSl=false&serverTimezone=UTC
 spring.datasource.username=root
 spring.datasource.password=
 spring.jpa.hibernate.ddl-auto=update
-server.port=8080
+server.port=8081
 ```
 
-JWT configuration (used by `/api/auth/**` and `/api/**`):
+JWT configuration:
 
 ```properties
 springz.app.jwtSecret=ChangeMeToAStrongSecretKeyAtLeast64BytesLong_0123456789_0123456789
 springz.app.jwtExpirationMs=3600000
 ```
 
-Example alternative configuration:
+## Run The Backend
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/springz
-spring.datasource.username=your_db_user
-spring.datasource.password=your_db_password
-spring.jpa.hibernate.ddl-auto=update
-```
-
-## Run (Windows PowerShell)
-
-From the project root you can run using the Maven wrapper:
+From the Spring project root:
 
 ```powershell
-./mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
-Or build and run the jar:
+The API runs at:
 
-```powershell
-./mvnw.cmd -DskipTests package
-java -jar target\SpringZ-0.0.1-SNAPSHOT.jar
+```text
+http://localhost:8081
 ```
 
-The application listens on port 8080 by default (<http://localhost:8080>) unless overridden in `application.properties`.
+## Angular Frontend
 
-## Web pages and controller endpoints
+Run the Angular app separately on:
 
-The app includes CRUD pages for Products, Categories, Subcategories, Providers, Customers, Users, and Orders.
+```text
+http://localhost:4200
+```
 
-Home:
+Use this API base URL in Angular:
 
-- GET `/` (or `/home`) — navigation page
+```text
+http://localhost:8081/api
+```
 
-Examples:
+The backend allows CORS from:
 
-- Products: GET `/all`, GET `/addProduct`, POST `/save`, GET `/edit/{id}`, GET `/delete/{id}`
-- Categories: GET `/allCategories`, GET `/addCategory`, POST `/saveCategory`
-- Orders: GET `/allOrders`, GET `/addOrders`, POST `/saveOrders`
+- `http://localhost:4200`
+- `http://127.0.0.1:4200`
 
-Pages are in `src/main/resources/templates`.
+## Authentication
 
-Note: These MVC endpoints return HTML (and POST endpoints often return a redirect).
+Create an account:
 
-## JSON API (JWT) for Postman
-
-The JSON API is under `/api/**` and is protected with JWT.
-
-### 1) Create an account
-
-- POST `/api/auth/signup`
-
-Example body:
+```http
+POST /api/auth/signup
+```
 
 ```json
 {
-	"name": "API User",
-	"email": "api.user@example.com",
-	"password": "secret"
+  "name": "API User",
+  "email": "api.user@example.com",
+  "password": "secret"
 }
 ```
 
-### 2) Login and get a token
+Sign in:
 
-- POST `/api/auth/signin`
-
-Example body:
+```http
+POST /api/auth/signin
+```
 
 ```json
 {
-	"email": "api.user@example.com",
-	"password": "secret"
+  "email": "api.user@example.com",
+  "password": "secret"
 }
 ```
 
-The response contains a `token`. Use it in requests:
+The response contains a JWT token. Send it on protected requests:
 
-```
+```http
 Authorization: Bearer <token>
 ```
 
-### 3) Call protected endpoints
+## API Examples
 
-Examples:
+- `GET /api/products`
+- `POST /api/products`
+- `GET /api/categories`
+- `GET /api/orders`
 
-- GET `/api/products`
-- POST `/api/products`
-- GET `/api/orders`
-- POST `/api/orders`
-
-If you call a protected endpoint without a token, you get `401` JSON.
+Protected API requests without a valid token return `401`.
 
 ## Postman
 
-Import the collection:
+Import:
 
-- `postman/SpringZ_API.postman_collection.json`
+```text
+postman/SpringZ_API.postman_collection.json
+```
 
 Recommended run order:
 
-1. Auth → Signup
-2. Auth → Signin (saves `token` into collection variables)
-3. Use the other requests (they send `Authorization: Bearer {{token}}`)
+1. `Auth -> Signup`
+2. `Auth -> Signin`
+3. Use the other API requests with `Authorization: Bearer {{token}}`
 
 ## Tests
 
-Run tests with:
+Run:
 
 ```powershell
-./mvnw.cmd test
+.\mvnw.cmd test
 ```
-
-Tests use `src/test/resources/application.properties` (H2 in-memory DB), so they do not depend on MySQL.
-
-## Troubleshooting
-
-- If `./mvnw.cmd spring-boot:run` fails, it is usually a database connection issue.
-	Check `src/main/resources/application.properties` and ensure MySQL is running and credentials are correct.
-- To change the port, set `server.port` in `application.properties`.
-- If you get Lombok-related warnings in your IDE, enable annotation processing or install the Lombok plugin.
-
-## Security notes
-
-- `/api/**` is stateless and uses JWT.
-- MVC pages are currently permitted without login.
-- CSRF is disabled to avoid breaking existing Thymeleaf form posts.
-
-## Contributing
-
-Contributions are welcome. Open an issue or submit a pull request and include steps to reproduce any bug.
-
-## License
-
-See the `LICENSE` file in the repository for license details.
